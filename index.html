@@ -3,42 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M3 / M4 Prognostic — Pancreatic Cancer OS Calculator</title>
+<title>M3 / M4 Prognostic — Pancreatic Cancer OS &amp; RFS Calculator</title>
 <script src="https://cdn.plot.ly/plotly-2.30.0.min.js" charset="utf-8"></script>
 <style>
   :root{
-    /* Reference palette */
-    --m3:#5B5FA2;            /* M3 primary (blue-violet) */
-    --m4:#C98AA6;            /* M4 primary (pink) */
-    --m3-soft:#E7E6F6;       /* M3 soft card */
-    --m4-soft:#F2E6F3;       /* M4 soft card */
-    --g0:#F7F8FA;            /* lightest bg */
-    --g1:#EEF0F3;            /* panel bg / borders */
-    --g2:#D9DDE3;            /* borders */
-    --g3:#8B91A1;            /* muted text */
-    --g4:#2E3340;            /* ink / headings */
-    /* soft info-card accents (low saturation) */
+    --m3:#5B5FA2; --m4:#C98AA6; --m3-soft:#E7E6F6; --m4-soft:#F2E6F3;
+    --ep:#3E7CB1; --ep-soft:#E4EEF6;
+    --g0:#F7F8FA; --g1:#EEF0F3; --g2:#D9DDE3; --g3:#8B91A1; --g4:#2E3340;
     --c-violet:#E7E6F6; --c-blue:#E6EEF7; --c-green:#E6F2EC; --c-peach:#F7E9E2; --c-mauve:#F2E6F3;
     --ok:#4c8f74; --warn:#c9902f; --risk:#b8607f;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Inter","Source Sans 3","Liberation Sans","Arimo","DejaVu Sans",Arial,sans-serif;
        background:var(--g0);color:var(--g4);line-height:1.55;font-size:14px;}
-  /* ---- top bar ---- */
-  header{background:#fff;border-bottom:1px solid var(--g2);padding:16px 30px;
-         display:flex;align-items:center;gap:14px;}
-  .logo{width:40px;height:40px;border-radius:50%;background:var(--m3-soft);
-        display:flex;align-items:center;justify-content:center;color:var(--m3);font-size:20px;flex:0 0 auto;}
+  header{background:#fff;border-bottom:1px solid var(--g2);padding:16px 30px;display:flex;align-items:center;gap:14px;}
+  .logo{width:40px;height:40px;border-radius:50%;background:var(--m3-soft);display:flex;align-items:center;justify-content:center;color:var(--m3);font-size:20px;flex:0 0 auto;}
   header h1{margin:0;font-size:19px;font-weight:700;color:var(--g4);letter-spacing:.2px;}
   header .sub{margin:2px 0 0;font-size:12.5px;color:var(--g3);}
   .wrap{max-width:1180px;margin:0 auto;padding:24px 30px 60px;}
   .lead{font-size:13px;color:var(--g3);margin:2px 0 18px;}
 
-  /* ---- model toggle (big cards) ---- */
   .toggle-lbl{font-size:14px;font-weight:600;color:var(--g4);margin:0 0 10px;display:flex;align-items:center;gap:6px;}
+  .step-num{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--g4);color:#fff;font-size:11px;align-items:center;justify-content:center;font-weight:700;}
+
+  /* endpoint toggle (level 1) */
+  .eptoggle{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:660px;margin-bottom:20px;}
+  .epbtn{border:1.6px solid var(--g2);background:#fff;border-radius:12px;padding:13px 18px;cursor:pointer;text-align:left;transition:.15s;}
+  .epbtn .et{font-size:15px;font-weight:700;margin-bottom:2px;}
+  .epbtn .ed{font-size:12px;color:var(--g3);}
+  .epbtn.active{border-color:var(--ep);background:var(--ep-soft);}
+  .epbtn.active .et{color:var(--ep);}
+
+  /* model toggle (level 2) */
   .toggle{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:660px;margin-bottom:22px;}
-  .mbtn{border:1.6px solid var(--g2);background:#fff;border-radius:12px;padding:15px 18px;cursor:pointer;
-        text-align:left;transition:.15s;}
+  .mbtn{border:1.6px solid var(--g2);background:#fff;border-radius:12px;padding:15px 18px;cursor:pointer;text-align:left;transition:.15s;}
   .mbtn .mt{font-size:16px;font-weight:700;margin-bottom:3px;}
   .mbtn .md{font-size:12.5px;color:var(--g3);}
   .mbtn[data-m="M3"].active{border-color:var(--m3);background:var(--m3-soft);}
@@ -46,7 +44,6 @@
   .mbtn[data-m="M4"].active{border-color:var(--m4);background:var(--m4-soft);}
   .mbtn[data-m="M4"].active .mt{color:#b06588;}
 
-  /* ---- info cards row ---- */
   .infocards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:26px;}
   @media(max-width:980px){.infocards{grid-template-columns:repeat(2,1fr);}}
   .ic{border-radius:12px;padding:14px 16px;border:1px solid rgba(0,0,0,.03);}
@@ -57,19 +54,15 @@
   .ic:nth-child(3){background:var(--c-green);} .ic:nth-child(4){background:var(--c-peach);}
   .ic:nth-child(5){background:var(--c-mauve);}
 
-  /* ---- 3-column working area ---- */
   .cols{display:grid;grid-template-columns:1fr 1.15fr 0.9fr;gap:20px;}
   @media(max-width:1000px){.cols{grid-template-columns:1fr;}}
   .card{background:#fff;border:1px solid var(--g2);border-radius:12px;padding:18px 20px;}
-  .card h2{margin:0 0 14px;font-size:14.5px;font-weight:700;color:var(--g4);
-           display:flex;align-items:center;gap:7px;}
+  .card h2{margin:0 0 14px;font-size:14.5px;font-weight:700;color:var(--g4);display:flex;align-items:center;gap:7px;}
   .field{display:flex;justify-content:space-between;align-items:center;margin:10px 0;gap:12px;}
   .field label{font-size:13px;color:var(--g4);flex:1;}
-  .field select{padding:7px 10px;border:1px solid var(--g2);border-radius:7px;font-size:13px;
-       background:#fff;min-width:150px;color:var(--g4);}
+  .field select{padding:7px 10px;border:1px solid var(--g2);border-radius:7px;font-size:13px;background:#fff;min-width:150px;color:var(--g4);}
   .field select:focus{outline:none;border-color:var(--m3);}
 
-  /* results */
   .results{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
   .rc{border-radius:10px;padding:13px 8px;text-align:center;border:1px solid rgba(0,0,0,.04);}
   .rc .tp{font-size:12px;color:var(--g3);margin-bottom:5px;font-weight:600;}
@@ -84,20 +77,16 @@
   .low{background:var(--ok);} .med{background:var(--warn);} .high{background:var(--risk);}
   #curve{width:100%;height:300px;}
 
-  /* risk explanation (contrib bars) */
   .contrib{margin-top:4px;}
   .crow{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:12px;}
-  .crow .cn{flex:0 0 46%;color:var(--g4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .crow .cn{flex:0 0 46%;color:var(--g4);overflow-wrap:anywhere;white-space:normal;}
   .crow .cbar{flex:1;height:9px;border-radius:5px;background:var(--g1);overflow:hidden;}
   .crow .cbar span{display:block;height:100%;border-radius:5px;}
   .crow .cv{flex:0 0 40px;text-align:right;color:var(--g3);}
 
-  .note{background:var(--g0);border:1px solid var(--g2);border-radius:8px;padding:10px 12px;
-        font-size:11.5px;color:var(--g3);margin-top:12px;line-height:1.5;}
-
+  .note{background:var(--g0);border:1px solid var(--g2);border-radius:8px;padding:10px 12px;font-size:11.5px;color:var(--g3);margin-top:12px;line-height:1.5;}
   footer{margin-top:30px;border-top:1px solid var(--g2);padding-top:18px;font-size:12px;color:var(--g3);}
-  footer .decl{background:var(--c-peach);border:1px solid #e8cbb2;border-radius:8px;padding:12px 15px;
-        color:#7a4a1e;font-size:12.5px;margin-bottom:14px;}
+  footer .decl{background:var(--c-peach);border:1px solid #e8cbb2;border-radius:8px;padding:12px 15px;color:#7a4a1e;font-size:12.5px;margin-bottom:14px;}
   footer code{background:var(--g1);padding:1px 5px;border-radius:3px;color:var(--g4);}
   footer b{color:var(--g4);}
   .muted{color:var(--g3);}
@@ -110,19 +99,30 @@
   <div class="logo">&#9877;</div>
   <div>
     <h1>M3 / M4 Prognostic</h1>
-    <div class="sub">Pancreatic cancer &middot; overall-survival prediction (research tool)</div>
+    <div class="sub">Pancreatic cancer &middot; <span id="subEndpoint">overall-survival prediction (research tool)</span></div>
   </div>
 </header>
 
 <div class="wrap">
 
-  <div class="toggle-lbl">Model selection</div>
-  <div class="lead">Select a model and enter patient features to obtain an individualised overall-survival prediction.</div>
+  <div class="toggle-lbl"><span class="step-num">1</span> Select endpoint</div>
+  <div class="eptoggle">
+    <button class="epbtn active" data-ep="OS">
+      <div class="et">Overall survival (OS)</div>
+      <div class="ed">Death event &middot; 6 / 12 / 18-month</div>
+    </button>
+    <button class="epbtn" data-ep="RFS">
+      <div class="et">Recurrence-free survival (RFS)</div>
+      <div class="ed">Progression or death &middot; 3 / 6 / 12-month</div>
+    </button>
+  </div>
 
+  <div class="toggle-lbl"><span class="step-num">2</span> Select model</div>
+  <div class="lead">Choose a model and enter patient features to obtain an individualised prediction.</div>
   <div class="toggle">
     <button class="mbtn active" data-m="M3">
-      <div class="mt">(M3) RNAscope-based model</div>
-      <div class="md">Clinical + histopathology + RNAscope &middot; default</div>
+      <div class="mt">(M3) SightRNA-based model</div>
+      <div class="md">Clinical + histopathology + SightRNA &middot; default</div>
     </button>
     <button class="mbtn" data-m="M4">
       <div class="mt">(M4) Integrated model</div>
@@ -130,18 +130,15 @@
     </button>
   </div>
 
-  <!-- info cards (real data) -->
   <div class="infocards">
     <div class="ic"><div class="ik">Model</div><div class="iv">Cox (Elastic-Net)</div><div class="ix">Multivariable, penalised</div></div>
-    <div class="ic"><div class="ik">Endpoint</div><div class="iv">Overall survival</div><div class="ix">Death event</div></div>
-    <div class="ic"><div class="ik">Time points</div><div class="iv">6 / 12 / 18 mo</div><div class="ix">Risk &amp; OS probability</div></div>
+    <div class="ic"><div class="ik">Endpoint</div><div class="iv" id="icEndpoint">Overall survival</div><div class="ix" id="icEndpointX">Death event</div></div>
+    <div class="ic"><div class="ik">Time points</div><div class="iv" id="icTP">6 / 12 / 18 mo</div><div class="ix">Survival &amp; risk probability</div></div>
     <div class="ic"><div class="ik">OOB C-index</div><div class="iv" id="cindexVal">0.71</div><div class="ix" id="cindexNote">Model M3, internal (OOB)</div></div>
     <div class="ic"><div class="ik">Internal validation</div><div class="iv">Bootstrap / OOB</div><div class="ix">Out-of-bag resampling</div></div>
   </div>
 
-  <!-- working area: inputs | results | explanation -->
   <div class="cols">
-
     <div class="card">
       <h2><span class="ico">&#9998;</span> Input features</h2>
       <div id="inputPanels"></div>
@@ -151,9 +148,9 @@
       <h2><span class="ico">&#128202;</span> Prediction results</h2>
       <div class="results" id="results"></div>
       <div class="strata" id="strata"></div>
-      <div style="font-size:12.5px;font-weight:600;color:var(--g4);margin:2px 0 4px">Predicted individual OS curve</div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--g4);margin:2px 0 4px" id="curveTitle">Predicted individual OS curve</div>
       <div id="curve"></div>
-      <div class="muted" style="text-align:center;font-size:11px;margin-top:4px">
+      <div class="muted" style="text-align:center;font-size:11px;margin-top:4px" id="curveCap">
         Line = predicted OS probability; markers = 6 / 12 / 18-month points.
       </div>
     </div>
@@ -169,7 +166,6 @@
       <div class="contrib" id="contrib"></div>
       <div class="note">Contributions represent each feature's contribution to the model linear predictor and do not imply causation. Interpret together with the overall clinical context.</div>
     </div>
-
   </div>
 
   <footer>
@@ -178,17 +174,18 @@
       performed using bootstrap resampling with out-of-bag (OOB) evaluation. This tool is for research use only.
     </div>
     <p><b>Model definitions.</b><br>
-       M3 (RNAscope-based model) = clinical/pathological variables + RNAscope features.<br>
+       M3 (SightRNA-based model) = clinical/pathological variables + SightRNA features.<br>
        M4 (Integrated model) = M3 features additionally combined with IHC features.</p>
     <p><b>Method.</b> Cox proportional-hazards model with Elastic-Net feature selection.
        Linear predictor: <code>lp = &Sigma;&beta;<sub>i</sub>x<sub>i</sub></code>.
        Survival probability: <code>S(t) = S&#8320;(t)<sup>exp(lp)</sup></code>.
        Baseline survival <code>S&#8320;(t)</code> was estimated using the Breslow estimator from the final
        model fitted to the full development cohort.</p>
-    <p class="muted">Discrimination (OOB C-index based on aggregated out-of-bag bootstrap predictions):
-       M3 = 0.71; M4 = 0.73.
+    <p class="muted">Discrimination (OOB C-index from aggregated out-of-bag bootstrap predictions):
+       OS — M3 = 0.71, M4 = 0.73; RFS — M3 = 0.69, M4 = 0.69.
        Absolute survival probabilities are generated from the final model fitted to the full development cohort.
-       OS cohort: n = 104, 104 observed events, no censoring, maximum follow-up &asymp; 1391 days.
+       OS cohort: n = 104, 104 observed deaths, no censoring, maximum follow-up &asymp; 1391 days.
+       RFS cohort: n = 104, 104 events (progression or death), no censoring, maximum follow-up &asymp; 983 days.
        No external validation was performed. This tool should not be used for individual clinical decision-making.</p>
   </footer>
 
